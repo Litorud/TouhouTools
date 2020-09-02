@@ -7,7 +7,7 @@ using System.Linq;
 
 namespace TouhouTools
 {
-    class Program
+    public class Program
     {
         static void Main()
         {
@@ -154,7 +154,7 @@ namespace TouhouTools
             return workingDirectory;
         }
 
-        public GameInfo SearchGame(string code)
+        public static GameInfo SearchGame(string code)
         {
             return SearchGames()
                 .Where(g => g.Code.Equals(code, StringComparison.OrdinalIgnoreCase))
