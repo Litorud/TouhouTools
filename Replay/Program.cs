@@ -20,9 +20,8 @@ namespace Replay
                 return;
             }
 
-            var fileName = Path.GetFileName(rpyPath);
-            var underscoreIndex = fileName.IndexOf('_');
-            var code = fileName.Substring(0, underscoreIndex);
+            var prefix = GetPrefix(rpyPath);
+            var code = GetCode(prefix);
             var gameInfo = TouhouTools.Program.SearchGame(code);
             if (gameInfo == null)
             {
@@ -32,7 +31,7 @@ namespace Replay
             var replay = Path.Combine(gameInfo.SaveFolder, "replay");
             Directory.CreateDirectory(gameInfo.SaveFolder);
 
-            var tempRpy = Path.Combine(replay, $"{code}_udTemp.rpy");
+            var tempRpy = Path.Combine(replay, $"{prefix}_udTemp.rpy");
             File.Copy(rpyPath, tempRpy);
 
             var process = gameInfo switch
@@ -50,6 +49,23 @@ namespace Replay
 
             process.WaitForExit();
             File.Delete(tempRpy);
+        }
+
+        private static string GetPrefix(string rpyPath)
+        {
+            var fileName = Path.GetFileName(rpyPath);
+            var underscoreIndex = fileName.IndexOf('_');
+            return fileName.Substring(0, underscoreIndex);
+        }
+
+        private static string GetCode(string prefix)
+        {
+            if (prefix.Length == 3 || prefix == "th95")
+            {
+                return prefix.Insert(2, "0");
+            }
+
+            return prefix;
         }
     }
 }
