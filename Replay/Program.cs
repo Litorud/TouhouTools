@@ -11,12 +11,14 @@ namespace Replay
         {
             if (args.Length == 0)
             {
+                Console.WriteLine("リプレイファイルが指定されていません。");
                 return;
             }
 
             var rpy = args[0];
             if (!File.Exists(rpy))
             {
+                Console.WriteLine("指定したファイルは存在しません。");
                 return;
             }
 
@@ -25,6 +27,7 @@ namespace Replay
             var gameInfo = TouhouTools.Program.SearchGame(code);
             if (gameInfo == null)
             {
+                Console.WriteLine("指定したファイルに対応するゲームを、このコンピューターから見つけることができませんでした。");
                 return;
             }
 
