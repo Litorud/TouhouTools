@@ -32,7 +32,9 @@ namespace TouhouTools
                 .Concat(SearchPrograms(Environment.SpecialFolder.Programs))
                 .Concat(SearchRegistry(Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"))
                 .Concat(SearchRegistry(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"))
-                .Concat(SearchRegistry(Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"));
+                .Concat(SearchRegistry(Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"))
+                .Concat(SearchProgramFiles(Environment.SpecialFolder.ProgramFilesX86))
+                .Concat(SearchProgramFiles(Environment.SpecialFolder.ProgramFiles));
         }
 
         private static IEnumerable<GameInfo> SearchPrograms(Environment.SpecialFolder programsFolder)
@@ -133,6 +135,86 @@ namespace TouhouTools
                     }
                 }
             }
+        }
+
+        // Program Files を調べる。
+        // 紅魔郷～文花帖は Uninstall キー配下にキーが作られないが、既定で Program Files 配下にインストールされるので、
+        // Program Files 配下を調べることで、新たにゲームを見つけられる可能性がある。
+        private static IEnumerable<GameInfo> SearchProgramFiles(Environment.SpecialFolder programFilesFolder)
+        {
+            var programFiles = Environment.GetFolderPath(programFilesFolder);
+
+            // 東方紅魔郷は、既定のインストール先が上海アリス幻樂団配下ではなく、 Program Files 直下になっている。
+            const string name = "東方紅魔郷";
+            var th06ExePath = Path.Combine(programFiles, name, $"{name}.exe");
+            if (File.Exists(th06ExePath))
+            {
+                var workingDirectory = Path.GetDirectoryName(th06ExePath)!;
+                yield return new ExecutableGameInfo(
+                    "th06",
+                    name,
+                    th06ExePath,
+                    GetSaveFolder(name, workingDirectory),
+                    workingDirectory);
+            }
+
+            // Program Files の中から、“上海アリス幻樂団”というディレクトリを再帰的に探す。
+            var directories = Directory.EnumerateDirectories(programFiles, "上海アリス幻樂団", SearchOption.AllDirectories);
+
+            // SearchOption.AllDirectories の結果を列挙すると、UnauthorizedAccessException が発生することがある。
+            // 参考: https://docs.microsoft.com/ja-jp/dotnet/standard/io/how-to-enumerate-directories-and-files
+            // 例外を無視するために、foreach ではなく直接 Enumerator を扱う。
+            var enumerator = directories.GetEnumerator();
+            do
+            {
+                try
+                {
+                    if (!enumerator.MoveNext())
+                    {
+                        break;
+                    }
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    continue;
+                }
+
+                var gameDirectories = Directory.EnumerateDirectories(enumerator.Current);
+
+                foreach (var gameDirectory in gameDirectories)
+                {
+                    var exeCandidates = Directory.EnumerateFiles(gameDirectory, "th???.exe");
+                    if (!exeCandidates.Any())
+                    {
+                        continue;
+                    }
+
+                    var startPath = exeCandidates.First();
+                    var exeName = Path.GetFileNameWithoutExtension(startPath);
+                    var code = exeName == "東方紅魔郷" ? "th06" : exeName;
+
+                    string saveFolder;
+                    if (code.CompareTo("th125") < 0)
+                    {
+                        saveFolder = GetSaveFolder(exeName, gameDirectory);
+                    }
+                    else
+                    {
+                        // このメソッドは繰り返し呼び出されるので、
+                        // Path.Combine(applicationData, "ShanghaiAlice") をキャッシュする余地がある。
+                        // ただし、必要無いのに初期化されないようにしなくてはならない。
+                        var applicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                        saveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
+                    }
+
+                    yield return new ExecutableGameInfo(
+                        code,
+                        Path.GetFileName(gameDirectory),
+                        startPath,
+                        saveFolder,
+                        gameDirectory);
+                }
+            } while (true);
         }
 
         private static string GetSaveFolder(string exeName, string workingDirectory)
