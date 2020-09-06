@@ -14,13 +14,13 @@ namespace Replay
                 return;
             }
 
-            var rpyPath = args[0];
-            if (!File.Exists(rpyPath))
+            var rpy = args[0];
+            if (!File.Exists(rpy))
             {
                 return;
             }
 
-            var prefix = GetPrefix(rpyPath);
+            var prefix = GetPrefix(rpy);
             var code = GetCode(prefix);
             var gameInfo = TouhouTools.Program.SearchGame(code);
             if (gameInfo == null)
@@ -31,8 +31,17 @@ namespace Replay
             var replay = Path.Combine(gameInfo.SaveFolder, "replay");
             Directory.CreateDirectory(replay);
 
-            var tempRpy = Path.Combine(replay, $"{prefix}_udTemp.rpy");
-            File.Copy(rpyPath, tempRpy);
+            string tempRpy;
+            try
+            {
+                tempRpy = GetTempRpyPath(replay, prefix);
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("同名のファイルが存在するため、コピーできません。");
+                return;
+            }
+            File.Copy(rpy, tempRpy);
 
             var process = gameInfo switch
             {
@@ -66,6 +75,45 @@ namespace Replay
             }
 
             return prefix;
+        }
+
+        private static string GetTempRpyPath(string replay, string prefix)
+        {
+            if (prefix == "th10")
+            {
+                for (var i = 25; i >= 1; i--)
+                {
+                    var path = Path.Combine(replay, $"th10_{i:00}.rpy");
+                    if (!File.Exists(path))
+                    {
+                        return path;
+                    }
+                }
+            }
+            else
+            {
+                var path = Path.Combine(replay, $"{prefix}_udTemp.rpy");
+                if (!File.Exists(path))
+                {
+                    return path;
+                }
+
+                var temp = "Temp";
+                for (var i = 1; i <= 9999; i++)
+                {
+                    var str = i.ToString();
+                    var part = temp.Substring(0, temp.Length - str.Length);
+                    var name = $"{prefix}_ud{part}{str}.rpy";
+
+                    path = Path.Combine(replay, name);
+                    if (!File.Exists(path))
+                    {
+                        return path;
+                    }
+                }
+            }
+
+            throw new Exception();
         }
     }
 }
