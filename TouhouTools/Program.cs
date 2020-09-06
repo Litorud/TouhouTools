@@ -30,8 +30,9 @@ namespace TouhouTools
         {
             return SearchPrograms(Environment.SpecialFolder.CommonPrograms)
                 .Concat(SearchPrograms(Environment.SpecialFolder.Programs))
-                .Concat(SearchRegistry(@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"))
-                .Concat(SearchRegistry(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"));
+                .Concat(SearchRegistry(Registry.LocalMachine, @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"))
+                .Concat(SearchRegistry(Registry.LocalMachine, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"))
+                .Concat(SearchRegistry(Registry.CurrentUser, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"));
         }
 
         private static IEnumerable<GameInfo> SearchPrograms(Environment.SpecialFolder programsFolder)
@@ -77,53 +78,59 @@ namespace TouhouTools
             }
         }
 
-        private static IEnumerable<GameInfo> SearchRegistry(string uninstallKey)
+        private static IEnumerable<GameInfo> SearchRegistry(RegistryKey rootKey, string uninstallKey)
         {
-            using (var key = Registry.LocalMachine.OpenSubKey(uninstallKey))
+            using (var key = rootKey.OpenSubKey(uninstallKey))
             {
+                if (key == null)
+                {
+                    yield break;
+                }
+
                 foreach (var name in key.GetSubKeyNames())
                 {
-                    var subKey = key.OpenSubKey(name);
-
-                    // インストール時にインストール先を変えた場合でも、Inno Setup: Icon Group の値は “上海アリス幻樂団\東方○○○” のようになり、
-                    // 必ず “上海アリス幻樂団” が含まれる。
-                    var iconGroup = subKey.GetValue("Inno Setup: Icon Group").ToString() ?? string.Empty;
-                    if (!iconGroup.Contains("上海アリス幻樂団"))
+                    using (var subKey = key.OpenSubKey(name))
                     {
-                        continue;
-                    }
+                        // インストール時にインストール先を変えた場合でも、Inno Setup: Icon Group の値は “上海アリス幻樂団\東方○○○” のようになり、
+                        // 必ず “上海アリス幻樂団” が含まれる。
+                        var iconGroup = subKey.GetValue("Inno Setup: Icon Group")?.ToString() ?? string.Empty;
+                        if (!iconGroup.Contains("上海アリス幻樂団"))
+                        {
+                            continue;
+                        }
 
-                    var workingDirectory = subKey.GetValue("InstallLocation").ToString() ?? string.Empty;
-                    var exeCandidates = Directory.EnumerateFiles(workingDirectory, "th???.exe");
-                    if (!exeCandidates.Any())
-                    {
-                        continue;
-                    }
+                        var workingDirectory = subKey.GetValue("InstallLocation")?.ToString() ?? string.Empty;
+                        var exeCandidates = Directory.EnumerateFiles(workingDirectory, "th???.exe");
+                        if (!exeCandidates.Any())
+                        {
+                            continue;
+                        }
 
-                    var startPath = exeCandidates.First();
-                    var exeName = Path.GetFileNameWithoutExtension(startPath);
-                    var code = exeName == "東方紅魔郷" ? "th06" : exeName;
+                        var startPath = exeCandidates.First();
+                        var exeName = Path.GetFileNameWithoutExtension(startPath);
+                        var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                    string saveFolder;
-                    if (code.CompareTo("th125") < 0)
-                    {
-                        saveFolder = GetSaveFolder(code, workingDirectory);
-                    }
-                    else
-                    {
-                        // このメソッドは繰り返し呼び出されるので、
-                        // Path.Combine(applicationData, "ShanghaiAlice") をキャッシュする余地がある。
-                        // ただし、必要無いのに初期化されないようにしなくてはならない。
-                        var applicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                        saveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
-                    }
+                        string saveFolder;
+                        if (code.CompareTo("th125") < 0)
+                        {
+                            saveFolder = GetSaveFolder(code, workingDirectory);
+                        }
+                        else
+                        {
+                            // このメソッドは繰り返し呼び出されるので、
+                            // Path.Combine(applicationData, "ShanghaiAlice") をキャッシュする余地がある。
+                            // ただし、必要無いのに初期化されないようにしなくてはならない。
+                            var applicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                            saveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
+                        }
 
-                    yield return new ExecutableGameInfo(
-                        code,
-                        subKey.GetValue("Inno Setup: Icon Group").ToString() ?? string.Empty,
-                        startPath,
-                        saveFolder,
-                        workingDirectory);
+                        yield return new ExecutableGameInfo(
+                            code,
+                            subKey.GetValue("Inno Setup: Icon Group")?.ToString() ?? string.Empty,
+                            startPath,
+                            saveFolder,
+                            workingDirectory);
+                    }
                 }
             }
         }
