@@ -61,7 +61,7 @@ namespace TouhouTools
                         string saveFolder;
                         if (code.CompareTo("th125") < 0)
                         {
-                            saveFolder = GetSaveFolder(code, shortcut.StringData.WorkingDir);
+                            saveFolder = GetSaveFolder(exeName, shortcut.StringData.WorkingDir);
                         }
                         else
                         {
@@ -113,7 +113,7 @@ namespace TouhouTools
                         string saveFolder;
                         if (code.CompareTo("th125") < 0)
                         {
-                            saveFolder = GetSaveFolder(code, workingDirectory);
+                            saveFolder = GetSaveFolder(exeName, workingDirectory);
                         }
                         else
                         {
@@ -135,7 +135,7 @@ namespace TouhouTools
             }
         }
 
-        private static string GetSaveFolder(string code, string workingDirectory)
+        private static string GetSaveFolder(string exeName, string workingDirectory)
         {
             var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             var virtualStore = new DirectoryInfo(Path.Combine(localApplicationData, "VirtualStore"));
@@ -144,8 +144,10 @@ namespace TouhouTools
                 var parentName = Path.GetFileName(workingDirectory);
                 var parents = virtualStore.EnumerateDirectories(parentName, SearchOption.AllDirectories);
 
-                // 本当にゲームのバーチャルストアかどうか、スコアファイルの有無で確かめる。
-                var scoreFile = code.CompareTo("th095") < 0 ? "score.dat" : $"score{code}.dat";
+                // 本当にゲームのバーチャルストアかどうか、コンフィグファイルの有無で確かめる。
+                // コンフィグファイルは一度でもゲームを起動すると作成される。
+                // スコアファイルは、プレイしないと作成されない。
+                var scoreFile = $"{exeName}.cfg";
                 var parent = parents.FirstOrDefault(p => File.Exists(Path.Combine(p.FullName, scoreFile)));
                 if (parent != null)
                 {
