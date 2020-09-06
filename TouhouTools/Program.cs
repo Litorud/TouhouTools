@@ -52,20 +52,15 @@ namespace TouhouTools
 
                     if (File.Exists(shortcutPath))
                     {
-                        var info = new ShortcutGameInfo
-                        {
-                            Name = gameName,
-                            StartPath = shortcutPath
-                        };
-
                         var shortcut = Shortcut.ReadFromFile(shortcutPath);
                         var exePath = shortcut.LinkTargetIDList.Path;
                         var exeName = Path.GetFileNameWithoutExtension(exePath);
-                        info.Code = exeName == "東方紅魔郷" ? "th06" : exeName;
+                        var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                        if (info.Code.CompareTo("th125") < 0)
+                        string saveFolder;
+                        if (code.CompareTo("th125") < 0)
                         {
-                            info.SaveFolder = GetSaveFolder(info.Code, shortcut.StringData.WorkingDir);
+                            saveFolder = GetSaveFolder(code, shortcut.StringData.WorkingDir);
                         }
                         else
                         {
@@ -73,10 +68,10 @@ namespace TouhouTools
                             // Path.Combine(applicationData, "ShanghaiAlice") をキャッシュする余地がある。
                             // ただし、必要無いのに初期化されないようにしなくてはならない。
                             var applicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                            info.SaveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
+                            saveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
                         }
 
-                        yield return info;
+                        yield return new ShortcutGameInfo(code, gameName, shortcutPath, saveFolder);
                     }
                 }
             }
@@ -92,32 +87,27 @@ namespace TouhouTools
 
                     // インストール時にインストール先を変えた場合でも、Inno Setup: Icon Group の値は “上海アリス幻樂団\東方○○○” のようになり、
                     // 必ず “上海アリス幻樂団” が含まれる。
-                    var iconGroup = Convert.ToString(subKey.GetValue("Inno Setup: Icon Group"));
+                    var iconGroup = subKey.GetValue("Inno Setup: Icon Group").ToString() ?? string.Empty;
                     if (!iconGroup.Contains("上海アリス幻樂団"))
                     {
                         continue;
                     }
 
-                    var workingDirectory = Convert.ToString(subKey.GetValue("InstallLocation"));
+                    var workingDirectory = subKey.GetValue("InstallLocation").ToString() ?? string.Empty;
                     var exeCandidates = Directory.EnumerateFiles(workingDirectory, "th???.exe");
                     if (!exeCandidates.Any())
                     {
                         continue;
                     }
 
-                    var info = new ExecutableGameInfo
-                    {
-                        Name = Convert.ToString(subKey.GetValue("Inno Setup: Icon Group")),
-                        StartPath = exeCandidates.First(),
-                        WorkingDirectory = workingDirectory
-                    };
+                    var startPath = exeCandidates.First();
+                    var exeName = Path.GetFileNameWithoutExtension(startPath);
+                    var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                    var exeName = Path.GetFileNameWithoutExtension(info.StartPath);
-                    info.Code = exeName == "東方紅魔郷" ? "th06" : exeName;
-
-                    if (info.Code.CompareTo("th125") < 0)
+                    string saveFolder;
+                    if (code.CompareTo("th125") < 0)
                     {
-                        info.SaveFolder = GetSaveFolder(info.Code, workingDirectory);
+                        saveFolder = GetSaveFolder(code, workingDirectory);
                     }
                     else
                     {
@@ -125,10 +115,15 @@ namespace TouhouTools
                         // Path.Combine(applicationData, "ShanghaiAlice") をキャッシュする余地がある。
                         // ただし、必要無いのに初期化されないようにしなくてはならない。
                         var applicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                        info.SaveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
+                        saveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
                     }
 
-                    yield return info;
+                    yield return new ExecutableGameInfo(
+                        code,
+                        subKey.GetValue("Inno Setup: Icon Group").ToString() ?? string.Empty,
+                        startPath,
+                        saveFolder,
+                        workingDirectory);
                 }
             }
         }
