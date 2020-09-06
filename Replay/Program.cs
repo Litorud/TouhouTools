@@ -29,7 +29,7 @@ namespace Replay
             }
 
             var replay = Path.Combine(gameInfo.SaveFolder, "replay");
-            Directory.CreateDirectory(gameInfo.SaveFolder);
+            Directory.CreateDirectory(replay);
 
             var tempRpy = Path.Combine(replay, $"{prefix}_udTemp.rpy");
             File.Copy(rpyPath, tempRpy);
