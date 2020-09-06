@@ -24,12 +24,17 @@ namespace Replay
             var underscoreIndex = fileName.IndexOf('_');
             var code = fileName.Substring(0, underscoreIndex);
             var gameInfo = TouhouTools.Program.SearchGame(code);
+            if (gameInfo == null)
+            {
+                return;
+            }
 
             var replay = Path.Combine(gameInfo.SaveFolder, "replay");
             Directory.CreateDirectory(gameInfo.SaveFolder);
 
             var tempRpy = Path.Combine(replay, $"{code}_udTemp.rpy");
             File.Copy(rpyPath, tempRpy);
+
             var process = gameInfo switch
             {
                 ShortcutGameInfo _ => Process.Start(new ProcessStartInfo(gameInfo.StartPath)
