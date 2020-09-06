@@ -126,7 +126,7 @@ namespace TouhouTools
 
                         yield return new ExecutableGameInfo(
                             code,
-                            subKey.GetValue("Inno Setup: Icon Group")?.ToString() ?? string.Empty,
+                            subKey.GetValue("DisplayName")?.ToString() ?? string.Empty,
                             startPath,
                             saveFolder,
                             workingDirectory);
