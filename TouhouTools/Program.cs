@@ -15,15 +15,14 @@ namespace TouhouTools
 
         static void Main()
         {
-            Console.WriteLine("スタートメニューからゲームの情報を取得します。");
-
             var games = SearchGames();
 
             foreach (var info in games)
             {
-                Console.WriteLine($@"++++++++++++++++++++++++++++++++++++++++
+                Console.WriteLine($@"----------------------------------------
 {info.Name}
 ----------------------------------------
+識別コード　　　: {info.Code}
 起動パス　　　　: {info.StartPath}
 セーブフォルダー: {info.SaveFolder}
 ");
