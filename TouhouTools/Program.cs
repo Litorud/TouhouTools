@@ -63,7 +63,7 @@ namespace TouhouTools
                         var exeName = Path.GetFileNameWithoutExtension(exePath);
                         var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                        var saveFolder = code.CompareTo("th125") < 0
+                        var saveFolder = string.Compare(code, "th125", true) < 0
                             ? VirtualStoreHolder.GetSaveFolder(exeName, shortcut.StringData.WorkingDir)
                             : Path.Combine(shanghaiAlice, exeName);
 
@@ -105,7 +105,7 @@ namespace TouhouTools
                         var exeName = Path.GetFileNameWithoutExtension(startPath);
                         var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                        var saveFolder = code.CompareTo("th125") < 0
+                        var saveFolder = string.Compare(code, "th125", true) < 0
                             ? VirtualStoreHolder.GetSaveFolder(exeName, workingDirectory)
                             : Path.Combine(shanghaiAlice, exeName);
 
@@ -176,7 +176,7 @@ namespace TouhouTools
                     var exeName = Path.GetFileNameWithoutExtension(startPath);
                     var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                    var saveFolder = code.CompareTo("th125") < 0
+                    var saveFolder = string.Compare(code, "th125", true) < 0
                         ? VirtualStoreHolder.GetSaveFolder(exeName, gameDirectory)
                         : Path.Combine(shanghaiAlice, exeName);
 

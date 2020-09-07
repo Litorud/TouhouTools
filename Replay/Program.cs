@@ -72,7 +72,7 @@ namespace Replay
 
         private static string GetCode(string prefix)
         {
-            if (prefix.Length == 3 || prefix == "th95")
+            if (prefix.Length == 3 || prefix.Equals("th95", StringComparison.OrdinalIgnoreCase))
             {
                 return prefix.Insert(2, "0");
             }
@@ -82,11 +82,11 @@ namespace Replay
 
         private static string GetTempRpyPath(string replay, string prefix)
         {
-            if (prefix == "th10")
+            if (prefix.Equals("th10", StringComparison.OrdinalIgnoreCase))
             {
                 for (var i = 25; i >= 1; i--)
                 {
-                    var path = Path.Combine(replay, $"th10_{i:00}.rpy");
+                    var path = Path.Combine(replay, $"{prefix}_{i:00}.rpy"); // TH10 の可能性があるので、th10 決め打ちにしない。
                     if (!File.Exists(path))
                     {
                         return path;
@@ -101,11 +101,11 @@ namespace Replay
                     return path;
                 }
 
-                var temp = "Temp";
+                var temp = "Temp".AsSpan();
                 for (var i = 1; i <= 9999; i++)
                 {
                     var str = i.ToString();
-                    var part = temp.Substring(0, temp.Length - str.Length);
+                    var part = temp[..^str.Length].ToString(); // ReadOnlySpan<char>.ToString() は文字列のコピーを作らない。
                     var name = $"{prefix}_ud{part}{str}.rpy";
 
                     path = Path.Combine(replay, name);
