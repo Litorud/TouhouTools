@@ -9,6 +9,10 @@ namespace TouhouTools
 {
     public class Program
     {
+        static readonly string shanghaiAlice = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "ShanghaiAlice");
+
         static void Main()
         {
             Console.WriteLine("スタートメニューからゲームの情報を取得します。");
@@ -60,19 +64,9 @@ namespace TouhouTools
                         var exeName = Path.GetFileNameWithoutExtension(exePath);
                         var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                        string saveFolder;
-                        if (code.CompareTo("th125") < 0)
-                        {
-                            saveFolder = GetSaveFolder(exeName, shortcut.StringData.WorkingDir);
-                        }
-                        else
-                        {
-                            // このメソッドは繰り返し呼び出されるので、
-                            // Path.Combine(applicationData, "ShanghaiAlice") をキャッシュする余地がある。
-                            // ただし、必要無いのに初期化されないようにしなくてはならない。
-                            var applicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                            saveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
-                        }
+                        var saveFolder = code.CompareTo("th125") < 0
+                            ? VirtualStoreHolder.GetSaveFolder(exeName, shortcut.StringData.WorkingDir)
+                            : Path.Combine(shanghaiAlice, exeName);
 
                         yield return new ShortcutGameInfo(code, gameName, shortcutPath, saveFolder);
                     }
@@ -112,19 +106,9 @@ namespace TouhouTools
                         var exeName = Path.GetFileNameWithoutExtension(startPath);
                         var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                        string saveFolder;
-                        if (code.CompareTo("th125") < 0)
-                        {
-                            saveFolder = GetSaveFolder(exeName, workingDirectory);
-                        }
-                        else
-                        {
-                            // このメソッドは繰り返し呼び出されるので、
-                            // Path.Combine(applicationData, "ShanghaiAlice") をキャッシュする余地がある。
-                            // ただし、必要無いのに初期化されないようにしなくてはならない。
-                            var applicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                            saveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
-                        }
+                        var saveFolder = code.CompareTo("th125") < 0
+                            ? VirtualStoreHolder.GetSaveFolder(exeName, workingDirectory)
+                            : Path.Combine(shanghaiAlice, exeName);
 
                         yield return new ExecutableGameInfo(
                             code,
@@ -154,7 +138,7 @@ namespace TouhouTools
                     "th06",
                     name,
                     th06ExePath,
-                    GetSaveFolder(name, workingDirectory),
+                    VirtualStoreHolder.GetSaveFolder(name, workingDirectory),
                     workingDirectory);
             }
 
@@ -193,19 +177,9 @@ namespace TouhouTools
                     var exeName = Path.GetFileNameWithoutExtension(startPath);
                     var code = exeName == "東方紅魔郷" ? "th06" : exeName;
 
-                    string saveFolder;
-                    if (code.CompareTo("th125") < 0)
-                    {
-                        saveFolder = GetSaveFolder(exeName, gameDirectory);
-                    }
-                    else
-                    {
-                        // このメソッドは繰り返し呼び出されるので、
-                        // Path.Combine(applicationData, "ShanghaiAlice") をキャッシュする余地がある。
-                        // ただし、必要無いのに初期化されないようにしなくてはならない。
-                        var applicationData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                        saveFolder = Path.Combine(applicationData, "ShanghaiAlice", exeName);
-                    }
+                    var saveFolder = code.CompareTo("th125") < 0
+                        ? VirtualStoreHolder.GetSaveFolder(exeName, gameDirectory)
+                        : Path.Combine(shanghaiAlice, exeName);
 
                     yield return new ExecutableGameInfo(
                         code,
@@ -217,11 +191,39 @@ namespace TouhouTools
             } while (true);
         }
 
-        private static string GetSaveFolder(string exeName, string workingDirectory)
+        public static GameInfo SearchGame(string code)
         {
-            var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            var virtualStore = new DirectoryInfo(Path.Combine(localApplicationData, "VirtualStore"));
-            if (virtualStore.Exists)
+            return SearchGames()
+                .Where(g => g.Code.Equals(code, StringComparison.OrdinalIgnoreCase))
+                .FirstOrDefault();
+        }
+
+        // ダブルスポイラー以降は VirtualStore を調べる必要がないため、VirtualStore を取得する処理は無意味になる。
+        // そこで、このクラスに隔離することで、参照されたときだけ処理を行うようにする。
+        // このパターンは、shanghaiAlice フィールドに対しても適用する価値があるものの、
+        // shanghaiAlice のほうは参照する確率がおそらく高いので、このような複雑なことはせず、直接フィールドに保持している。
+        static class VirtualStoreHolder
+        {
+            static DirectoryInfo virtualStore;
+
+            public static readonly Func<string, string, string> GetSaveFolder;
+
+            static VirtualStoreHolder()
+            {
+                var localApplicationData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                virtualStore = new DirectoryInfo(Path.Combine(localApplicationData, "VirtualStore"));
+
+                if (virtualStore.Exists)
+                {
+                    GetSaveFolder = GetSaveFolderFromVirtualStore;
+                }
+                else
+                {
+                    GetSaveFolder = GetSaveFolderFromWorkingDirectory;
+                }
+            }
+
+            static string GetSaveFolderFromVirtualStore(string exeName, string workingDirectory)
             {
                 var parentName = Path.GetFileName(workingDirectory);
                 var parents = virtualStore.EnumerateDirectories(parentName, SearchOption.AllDirectories);
@@ -235,16 +237,11 @@ namespace TouhouTools
                 {
                     return parent.FullName;
                 }
+
+                return workingDirectory;
             }
 
-            return workingDirectory;
-        }
-
-        public static GameInfo SearchGame(string code)
-        {
-            return SearchGames()
-                .Where(g => g.Code.Equals(code, StringComparison.OrdinalIgnoreCase))
-                .FirstOrDefault();
+            static string GetSaveFolderFromWorkingDirectory(string exeName, string workingDirectory) => workingDirectory;
         }
     }
 }
