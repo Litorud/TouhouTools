@@ -56,31 +56,31 @@ namespace Replay
                 }
             }
 
-            var prefix = GetPrefix(rpy);
+            var fileName = Path.GetFileName(rpy);
+            var prefix = GetPrefix(fileName);
             var code = GetCode(prefix);
             var gameInfo = TouhouTools.Program.SearchGame(code);
             if (gameInfo == null)
             {
-                var gameName = string.Equals(prefix, "th6", StringComparison.OrdinalIgnoreCase) ? "東方紅魔郷"
-                    : string.Equals(prefix, "th7", StringComparison.OrdinalIgnoreCase) ? "東方妖々夢"
-                    : string.Equals(prefix, "th8", StringComparison.OrdinalIgnoreCase) ? "東方永夜抄"
-                    : string.Equals(prefix, "th9", StringComparison.OrdinalIgnoreCase) ? "東方花映塚"
-                    : string.Equals(prefix, "th95", StringComparison.OrdinalIgnoreCase) ? "東方文花帖"
-                    : string.Equals(prefix, "th10", StringComparison.OrdinalIgnoreCase) ? "東方風神録"
-                    : string.Equals(prefix, "th11", StringComparison.OrdinalIgnoreCase) ? "東方地霊殿"
-                    : string.Equals(prefix, "th12", StringComparison.OrdinalIgnoreCase) ? "東方星蓮船"
-                    : string.Equals(prefix, "th125", StringComparison.OrdinalIgnoreCase) ? "ダブルスポイラー"
-                    : string.Equals(prefix, "th128", StringComparison.OrdinalIgnoreCase) ? "妖精大戦争"
-                    : string.Equals(prefix, "th13", StringComparison.OrdinalIgnoreCase) ? "東方神霊廟"
-                    : string.Equals(prefix, "th14", StringComparison.OrdinalIgnoreCase) ? "東方輝針城"
-                    : string.Equals(prefix, "th143", StringComparison.OrdinalIgnoreCase) ? "弾幕アマノジャク"
-                    : string.Equals(prefix, "th15", StringComparison.OrdinalIgnoreCase) ? "東方紺珠伝"
-                    : string.Equals(prefix, "th16", StringComparison.OrdinalIgnoreCase) ? "東方天空璋"
-                    : string.Equals(prefix, "th165", StringComparison.OrdinalIgnoreCase) ? "秘封ナイトメアダイアリー"
-                    : string.Equals(prefix, "th17", StringComparison.OrdinalIgnoreCase) ? "東方鬼形獣"
-                    : $"{prefix.ToLower()}.exe";
+                var gameName = string.Equals(code, "th06", StringComparison.OrdinalIgnoreCase) ? "東方紅魔郷"
+                    : string.Equals(code, "th07", StringComparison.OrdinalIgnoreCase) ? "東方妖々夢"
+                    : string.Equals(code, "th08", StringComparison.OrdinalIgnoreCase) ? "東方永夜抄"
+                    : string.Equals(code, "th09", StringComparison.OrdinalIgnoreCase) ? "東方花映塚"
+                    : string.Equals(code, "th095", StringComparison.OrdinalIgnoreCase) ? "東方文花帖"
+                    : string.Equals(code, "th10", StringComparison.OrdinalIgnoreCase) ? "東方風神録"
+                    : string.Equals(code, "th11", StringComparison.OrdinalIgnoreCase) ? "東方地霊殿"
+                    : string.Equals(code, "th12", StringComparison.OrdinalIgnoreCase) ? "東方星蓮船"
+                    : string.Equals(code, "th125", StringComparison.OrdinalIgnoreCase) ? "ダブルスポイラー"
+                    : string.Equals(code, "th128", StringComparison.OrdinalIgnoreCase) ? "妖精大戦争"
+                    : string.Equals(code, "th13", StringComparison.OrdinalIgnoreCase) ? "東方神霊廟"
+                    : string.Equals(code, "th14", StringComparison.OrdinalIgnoreCase) ? "東方輝針城"
+                    : string.Equals(code, "th143", StringComparison.OrdinalIgnoreCase) ? "弾幕アマノジャク"
+                    : string.Equals(code, "th15", StringComparison.OrdinalIgnoreCase) ? "東方紺珠伝"
+                    : string.Equals(code, "th16", StringComparison.OrdinalIgnoreCase) ? "東方天空璋"
+                    : string.Equals(code, "th165", StringComparison.OrdinalIgnoreCase) ? "秘封ナイトメアダイアリー"
+                    : string.Equals(code, "th17", StringComparison.OrdinalIgnoreCase) ? "東方鬼形獣"
+                    : $"{code.ToLower()}.exe";
 
-                var fileName = Path.GetFileName(rpy);
                 MessageBox.Show(
                     $@"“{fileName}” に対応するゲームを見つけられませんでした。
 次に表示するダイアログで、「{gameName}」の場所を選択してください。",
@@ -140,9 +140,8 @@ namespace Replay
             File.Delete(tempRpy);
         }
 
-        private static string GetPrefix(string rpyPath)
+        private static string GetPrefix(string fileName)
         {
-            var fileName = Path.GetFileName(rpyPath);
             var underscoreIndex = fileName.IndexOf('_');
             return fileName.AsSpan()[..underscoreIndex].ToString();
         }
