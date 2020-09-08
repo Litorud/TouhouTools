@@ -67,7 +67,7 @@ namespace Replay
         {
             var fileName = Path.GetFileName(rpyPath);
             var underscoreIndex = fileName.IndexOf('_');
-            return fileName.Substring(0, underscoreIndex);
+            return fileName.AsSpan()[..underscoreIndex].ToString();
         }
 
         private static string GetCode(string prefix)
