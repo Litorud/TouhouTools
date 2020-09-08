@@ -1,25 +1,59 @@
-﻿using System;
+﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using Microsoft.WindowsAPICodePack.Dialogs.Controls;
+using System;
 using System.Diagnostics;
 using System.IO;
+using System.Windows;
 using TouhouTools;
 
 namespace Replay
 {
     class Program
     {
+        [STAThread]
         static void Main(string[] args)
         {
+            string rpy;
             if (args.Length == 0)
             {
-                Console.WriteLine("リプレイファイルが指定されていません。");
-                return;
-            }
+                var dialog = new CommonOpenFileDialog("リプレイファイルを選択してください。")
+                {
+                    //Multiselect = true,
+                    EnsureFileExists = true
+                };
 
-            var rpy = args[0];
-            if (!File.Exists(rpy))
+                var rpyFilter = new CommonFileDialogFilter()
+                {
+                    DisplayName = "リプレイファイル"
+                };
+                rpyFilter.Extensions.Add("rpy");
+                dialog.Filters.Add(rpyFilter);
+
+                var allFilter = new CommonFileDialogFilter()
+                {
+                    DisplayName = "すべてのファイル"
+                };
+                allFilter.Extensions.Add("*");
+                dialog.Filters.Add(allFilter);
+
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                {
+                    rpy = dialog.FileName;
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
             {
-                Console.WriteLine("指定したファイルは存在しません。");
-                return;
+                rpy = args[0];
+
+                if (!File.Exists(rpy))
+                {
+                    MessageBox.Show("指定したファイルは存在しません。", "Replay", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
             }
 
             var prefix = GetPrefix(rpy);
@@ -27,7 +61,50 @@ namespace Replay
             var gameInfo = TouhouTools.Program.SearchGame(code);
             if (gameInfo == null)
             {
-                Console.WriteLine("指定したファイルに対応するゲームを、このコンピューターから見つけることができませんでした。");
+                var gameName = string.Equals(prefix, "th6", StringComparison.OrdinalIgnoreCase) ? "東方紅魔郷"
+                    : string.Equals(prefix, "th7", StringComparison.OrdinalIgnoreCase) ? "東方妖々夢"
+                    : string.Equals(prefix, "th8", StringComparison.OrdinalIgnoreCase) ? "東方永夜抄"
+                    : string.Equals(prefix, "th9", StringComparison.OrdinalIgnoreCase) ? "東方花映塚"
+                    : string.Equals(prefix, "th95", StringComparison.OrdinalIgnoreCase) ? "東方文花帖"
+                    : string.Equals(prefix, "th10", StringComparison.OrdinalIgnoreCase) ? "東方風神録"
+                    : string.Equals(prefix, "th11", StringComparison.OrdinalIgnoreCase) ? "東方地霊殿"
+                    : string.Equals(prefix, "th12", StringComparison.OrdinalIgnoreCase) ? "東方星蓮船"
+                    : string.Equals(prefix, "th125", StringComparison.OrdinalIgnoreCase) ? "ダブルスポイラー"
+                    : string.Equals(prefix, "th128", StringComparison.OrdinalIgnoreCase) ? "妖精大戦争"
+                    : string.Equals(prefix, "th13", StringComparison.OrdinalIgnoreCase) ? "東方神霊廟"
+                    : string.Equals(prefix, "th14", StringComparison.OrdinalIgnoreCase) ? "東方輝針城"
+                    : string.Equals(prefix, "th143", StringComparison.OrdinalIgnoreCase) ? "弾幕アマノジャク"
+                    : string.Equals(prefix, "th15", StringComparison.OrdinalIgnoreCase) ? "東方紺珠伝"
+                    : string.Equals(prefix, "th16", StringComparison.OrdinalIgnoreCase) ? "東方天空璋"
+                    : string.Equals(prefix, "th165", StringComparison.OrdinalIgnoreCase) ? "秘封ナイトメアダイアリー"
+                    : string.Equals(prefix, "th17", StringComparison.OrdinalIgnoreCase) ? "東方鬼形獣"
+                    : $"{prefix.ToLower()}.exe";
+
+                var fileName = Path.GetFileName(rpy);
+                MessageBox.Show(
+                    $@"“{fileName}” に対応するゲームを見つけられませんでした。
+次に表示するダイアログで、「{gameName}」の場所を選択してください。",
+                    "Replay",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                var message = $"「{gameName}」の場所を選択してください。";
+                var dialog = new CommonOpenFileDialog(message)
+                {
+                    IsFolderPicker = true,
+                    EnsureFileExists = true
+                };
+                dialog.Controls.Add(new CommonFileDialogLabel(message));
+
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                {
+                    MessageBox.Show(dialog.FileName);
+                }
+                else
+                {
+                    return;
+                }
+
                 return;
             }
 
@@ -41,7 +118,7 @@ namespace Replay
             }
             catch (Exception)
             {
-                Console.WriteLine("同名のファイルが存在するため、コピーできません。");
+                MessageBox.Show("同名のファイルが存在するため、コピーできません。", "Replay", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             File.Copy(rpy, tempRpy);
