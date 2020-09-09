@@ -55,20 +55,20 @@ namespace TouhouTools
                 {
                     var gameName = Path.GetFileName(gameDirectory);
                     var shortcutPath = Path.Combine(gameDirectory, $"{gameName}.lnk");
-
-                    if (File.Exists(shortcutPath))
+                    if (!File.Exists(shortcutPath))
                     {
-                        var shortcut = Shortcut.ReadFromFile(shortcutPath);
-                        var exePath = shortcut.LinkTargetIDList.Path;
-                        var exeName = Path.GetFileNameWithoutExtension(exePath);
-                        var code = exeName == "東方紅魔郷" ? "th06" : exeName;
-
-                        var saveFolder = string.Compare(code, "th125", true) < 0
-                            ? VirtualStoreHolder.GetSaveFolder(exeName, shortcut.StringData.WorkingDir)
-                            : Path.Combine(shanghaiAlice, exeName);
-
-                        yield return new ShortcutGameInfo(code, gameName, shortcutPath, saveFolder);
+                        continue;
                     }
+
+                    var shortcut = Shortcut.ReadFromFile(shortcutPath);
+                    var exePath = shortcut.LinkTargetIDList.Path;
+                    var (exeName, code) = GetExeNameAndCode(exePath);
+
+                    var saveFolder = string.Compare(code, "th125", true) < 0
+                        ? VirtualStoreHolder.GetSaveFolder(exeName, shortcut.StringData.WorkingDir)
+                        : Path.Combine(shanghaiAlice, exeName);
+
+                    yield return new ShortcutGameInfo(code, gameName, shortcutPath, saveFolder);
                 }
             }
         }
@@ -88,22 +88,24 @@ namespace TouhouTools
                     {
                         // インストール時にインストール先を変えた場合でも、Inno Setup: Icon Group の値は “上海アリス幻樂団\東方○○○” のようになり、
                         // 必ず “上海アリス幻樂団” が含まれる。
-                        var iconGroup = subKey.GetValue("Inno Setup: Icon Group")?.ToString() ?? string.Empty;
-                        if (!iconGroup.Contains("上海アリス幻樂団"))
+                        if (subKey.GetValue("Inno Setup: Icon Group")?.ToString()?.Contains("上海アリス幻樂団") != true)
                         {
                             continue;
                         }
 
-                        var workingDirectory = subKey.GetValue("InstallLocation")?.ToString() ?? string.Empty;
-                        var exeCandidates = Directory.EnumerateFiles(workingDirectory, "th???.exe");
-                        if (!exeCandidates.Any())
+                        var workingDirectory = subKey.GetValue("InstallLocation")?.ToString();
+                        if (workingDirectory == null || !Directory.Exists(workingDirectory))
                         {
                             continue;
                         }
 
-                        var startPath = exeCandidates.First();
-                        var exeName = Path.GetFileNameWithoutExtension(startPath);
-                        var code = exeName == "東方紅魔郷" ? "th06" : exeName;
+                        var startPath = Directory.EnumerateFiles(workingDirectory, "th???.exe")?.FirstOrDefault();
+                        if (startPath == null)
+                        {
+                            continue;
+                        }
+
+                        var (exeName, code) = GetExeNameAndCode(startPath);
 
                         var saveFolder = string.Compare(code, "th125", true) < 0
                             ? VirtualStoreHolder.GetSaveFolder(exeName, workingDirectory)
@@ -128,17 +130,17 @@ namespace TouhouTools
             var programFiles = Environment.GetFolderPath(programFilesFolder);
 
             // 東方紅魔郷は、既定のインストール先が上海アリス幻樂団配下ではなく、 Program Files 直下になっている。
-            const string name = "東方紅魔郷";
-            var th06ExePath = Path.Combine(programFiles, name, $"{name}.exe");
-            if (File.Exists(th06ExePath))
+            const string Name = "東方紅魔郷";
+            var th06Directory = Path.Combine(programFiles, Name);
+            var th06Exe = Path.Combine(th06Directory, $"{Name}.exe");
+            if (File.Exists(th06Exe))
             {
-                var workingDirectory = Path.GetDirectoryName(th06ExePath)!;
                 yield return new ExecutableGameInfo(
                     "th06",
-                    name,
-                    th06ExePath,
-                    VirtualStoreHolder.GetSaveFolder(name, workingDirectory),
-                    workingDirectory);
+                    Name,
+                    th06Exe,
+                    VirtualStoreHolder.GetSaveFolder(Name, th06Directory),
+                    th06Directory);
             }
 
             // Program Files の中から、“上海アリス幻樂団”というディレクトリを再帰的に探す。
@@ -166,15 +168,13 @@ namespace TouhouTools
 
                 foreach (var gameDirectory in gameDirectories)
                 {
-                    var exeCandidates = Directory.EnumerateFiles(gameDirectory, "th???.exe");
-                    if (!exeCandidates.Any())
+                    var startPath = Directory.EnumerateFiles(gameDirectory, "th???.exe").FirstOrDefault();
+                    if (startPath == null)
                     {
                         continue;
                     }
 
-                    var startPath = exeCandidates.First();
-                    var exeName = Path.GetFileNameWithoutExtension(startPath);
-                    var code = exeName == "東方紅魔郷" ? "th06" : exeName;
+                    var (exeName, code) = GetExeNameAndCode(startPath);
 
                     var saveFolder = string.Compare(code, "th125", true) < 0
                         ? VirtualStoreHolder.GetSaveFolder(exeName, gameDirectory)
@@ -190,7 +190,15 @@ namespace TouhouTools
             } while (true);
         }
 
-        public static GameInfo SearchGame(string code)
+        private static (string, string) GetExeNameAndCode(string exePath)
+        {
+            var exeName = Path.GetFileNameWithoutExtension(exePath);
+            var code = exeName == "東方紅魔郷" ? "th06" : exeName;
+
+            return (exeName, code);
+        }
+
+        public static GameInfo? SearchGame(string code)
         {
             return SearchGames()
                 .Where(g => g.Code.Equals(code, StringComparison.OrdinalIgnoreCase))
@@ -230,14 +238,10 @@ namespace TouhouTools
                 // 本当にゲームのバーチャルストアかどうか、コンフィグファイルの有無で確かめる。
                 // コンフィグファイルは一度でもゲームを起動すると作成される。
                 // スコアファイルは、プレイしないと作成されない。
-                var scoreFile = $"{exeName}.cfg";
-                var parent = parents.FirstOrDefault(p => File.Exists(Path.Combine(p.FullName, scoreFile)));
-                if (parent != null)
-                {
-                    return parent.FullName;
-                }
-
-                return workingDirectory;
+                var cfgFile = $"{exeName}.cfg";
+                return parents.Select(p => p.FullName)
+                    .FirstOrDefault(n => File.Exists(Path.Combine(n, cfgFile)))
+                    ?? workingDirectory;
             }
 
             static string GetSaveFolderFromWorkingDirectory(string exeName, string workingDirectory) => workingDirectory;
