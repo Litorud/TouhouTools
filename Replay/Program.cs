@@ -57,7 +57,14 @@ namespace Replay
             }
 
             var fileName = Path.GetFileName(rpy);
-            var prefix = GetPrefix(fileName);
+            var underscoreIndex = fileName.IndexOf('_');
+            if (underscoreIndex < 0)
+            {
+                MessageBox.Show("ファイル名からゲームを判別できません。", "Replay", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var prefix = fileName.AsSpan()[..underscoreIndex].ToString();
             var code = GetCode(prefix);
             var gameInfo = TouhouTools.Program.SearchGame(code);
             if (gameInfo == null)
@@ -138,12 +145,6 @@ namespace Replay
 
             process.WaitForExit();
             File.Delete(tempRpy);
-        }
-
-        private static string GetPrefix(string fileName)
-        {
-            var underscoreIndex = fileName.IndexOf('_');
-            return fileName.AsSpan()[..underscoreIndex].ToString();
         }
 
         private static string GetCode(string prefix)
