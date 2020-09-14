@@ -16,7 +16,7 @@ namespace Replay
             string rpy;
             if (args.Length == 0)
             {
-                var dialog = new CommonOpenFileDialog("リプレイファイルを選択してください。")
+                var dialog = new CommonOpenFileDialog("リプレイファイルを選択してください")
                 {
                     //Multiselect = true,
                     EnsureFileExists = true
@@ -62,39 +62,21 @@ namespace Replay
             var gameInfo = TouhouTools.Program.SearchGame(code);
             if (gameInfo == null)
             {
-                var gameName = string.Equals(code, "th06", StringComparison.OrdinalIgnoreCase) ? "東方紅魔郷"
-                    : string.Equals(code, "th07", StringComparison.OrdinalIgnoreCase) ? "東方妖々夢"
-                    : string.Equals(code, "th08", StringComparison.OrdinalIgnoreCase) ? "東方永夜抄"
-                    : string.Equals(code, "th09", StringComparison.OrdinalIgnoreCase) ? "東方花映塚"
-                    : string.Equals(code, "th095", StringComparison.OrdinalIgnoreCase) ? "東方文花帖"
-                    : string.Equals(code, "th10", StringComparison.OrdinalIgnoreCase) ? "東方風神録"
-                    : string.Equals(code, "th11", StringComparison.OrdinalIgnoreCase) ? "東方地霊殿"
-                    : string.Equals(code, "th12", StringComparison.OrdinalIgnoreCase) ? "東方星蓮船"
-                    : string.Equals(code, "th125", StringComparison.OrdinalIgnoreCase) ? "ダブルスポイラー"
-                    : string.Equals(code, "th128", StringComparison.OrdinalIgnoreCase) ? "妖精大戦争"
-                    : string.Equals(code, "th13", StringComparison.OrdinalIgnoreCase) ? "東方神霊廟"
-                    : string.Equals(code, "th14", StringComparison.OrdinalIgnoreCase) ? "東方輝針城"
-                    : string.Equals(code, "th143", StringComparison.OrdinalIgnoreCase) ? "弾幕アマノジャク"
-                    : string.Equals(code, "th15", StringComparison.OrdinalIgnoreCase) ? "東方紺珠伝"
-                    : string.Equals(code, "th16", StringComparison.OrdinalIgnoreCase) ? "東方天空璋"
-                    : string.Equals(code, "th165", StringComparison.OrdinalIgnoreCase) ? "秘封ナイトメアダイアリー"
-                    : string.Equals(code, "th17", StringComparison.OrdinalIgnoreCase) ? "東方鬼形獣"
-                    : $"{code.ToLower()}.exe";
+                var exeName = string.Equals(code, "th06", StringComparison.OrdinalIgnoreCase) ? "東方紅魔郷.exe" : $"{code.ToLower()}.exe";
 
                 MessageBox.Show(
                     $@"“{fileName}” に対応するゲームを見つけられませんでした。
-次に表示するダイアログで、「{gameName}」の場所を選択してください。",
+次に表示するダイアログで、“{exeName}” の場所を選択してください。",
                     "Replay",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
 
-                var message = $"「{gameName}」の場所を選択してください。";
-                var dialog = new CommonOpenFileDialog(message)
+                var dialog = new CommonOpenFileDialog($"“{exeName}” の場所を選択してください")
                 {
                     IsFolderPicker = true,
                     EnsureFileExists = true
                 };
-                dialog.Controls.Add(new CommonFileDialogLabel(message));
+                dialog.Controls.Add(new CommonFileDialogLabel($"“{exeName}” の場所"));
 
                 if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                 {
