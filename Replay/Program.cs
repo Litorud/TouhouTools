@@ -80,14 +80,32 @@ namespace Replay
 
                 if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                 {
-                    MessageBox.Show(dialog.FileName);
+                    var gameDirectory = dialog.FileName;
+                    // 実行ファイルのパスを取得する。
+                    // 指定されたディレクトリから th???.exe を探せば、リプレイファイル名が形式通りでなくてもコピーおよび起動ができると思ったが、
+                    // 東方紅魔郷.exe への特殊対応が必要になるし、EXE 名からリプレイファイル接頭辞を引く処理も必要になるため、現時点では対応しない。
+                    var startPath = Path.Combine(gameDirectory, exeName);
+                    if (!File.Exists(startPath))
+                    {
+                        MessageBox.Show("すみません。このゲームには対応していません。", "Replay", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var saveFolder = string.Compare(code, "th125", true) < 0
+                        ? TouhouTools.Program.VirtualStoreHolder.GetSaveFolder(exeName, gameDirectory)
+                        : TouhouTools.Program.ShanghaiAliceHolder.GetSaveFolder(exeName);
+
+                    gameInfo = new ExecutableGameInfo(
+                        code,
+                        Path.GetFileName(gameDirectory),
+                        startPath,
+                        saveFolder,
+                        gameDirectory);
                 }
                 else
                 {
                     return;
                 }
-
-                return;
             }
 
             var replay = Path.Combine(gameInfo.SaveFolder, "replay");

@@ -9,9 +9,6 @@ namespace TouhouTools
 {
     public class Program
     {
-        static readonly string shanghaiAlice = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "ShanghaiAlice");
 
         static void Main()
         {
@@ -66,7 +63,7 @@ namespace TouhouTools
 
                     var saveFolder = string.Compare(code, "th125", true) < 0
                         ? VirtualStoreHolder.GetSaveFolder(exeName, shortcut.StringData.WorkingDir)
-                        : Path.Combine(shanghaiAlice, exeName);
+                        : ShanghaiAliceHolder.GetSaveFolder(exeName);
 
                     yield return new ShortcutGameInfo(code, gameName, shortcutPath, saveFolder);
                 }
@@ -109,7 +106,7 @@ namespace TouhouTools
 
                         var saveFolder = string.Compare(code, "th125", true) < 0
                             ? VirtualStoreHolder.GetSaveFolder(exeName, workingDirectory)
-                            : Path.Combine(shanghaiAlice, exeName);
+                            : ShanghaiAliceHolder.GetSaveFolder(exeName);
 
                         yield return new ExecutableGameInfo(
                             code,
@@ -178,7 +175,7 @@ namespace TouhouTools
 
                     var saveFolder = string.Compare(code, "th125", true) < 0
                         ? VirtualStoreHolder.GetSaveFolder(exeName, gameDirectory)
-                        : Path.Combine(shanghaiAlice, exeName);
+                        : ShanghaiAliceHolder.GetSaveFolder(exeName);
 
                     yield return new ExecutableGameInfo(
                         code,
@@ -207,9 +204,7 @@ namespace TouhouTools
 
         // ダブルスポイラー以降は VirtualStore を調べる必要がないため、VirtualStore を取得する処理は無意味になる。
         // そこで、このクラスに隔離することで、参照されたときだけ処理を行うようにする。
-        // このパターンは、shanghaiAlice フィールドに対しても適用する価値があるものの、
-        // shanghaiAlice のほうは参照する確率がおそらく高いので、このような複雑なことはせず、直接フィールドに保持している。
-        static class VirtualStoreHolder
+        public static class VirtualStoreHolder
         {
             static DirectoryInfo virtualStore;
 
@@ -245,6 +240,17 @@ namespace TouhouTools
             }
 
             static string GetSaveFolderFromWorkingDirectory(string exeName, string workingDirectory) => workingDirectory;
+        }
+
+        // 東方星蓮船以前は ShanghaiAlice を使わないため、ShanghaiAlice を取得する処理は無意味になる。
+        // そこで、このクラスに隔離することで、参照されたときだけ処理を行うようにする。
+        public static class ShanghaiAliceHolder
+        {
+            static readonly string shanghaiAlice = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ShanghaiAlice");
+
+            public static string GetSaveFolder(string exeName) => Path.Combine(shanghaiAlice, exeName);
         }
     }
 }

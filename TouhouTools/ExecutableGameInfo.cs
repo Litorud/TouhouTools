@@ -8,7 +8,7 @@
         public string SaveFolder { get; set; }
         public string WorkingDirectory { get; set; }
 
-        internal ExecutableGameInfo(string code, string name, string startPath, string saveFolder, string workingDirectory)
+        public ExecutableGameInfo(string code, string name, string startPath, string saveFolder, string workingDirectory)
         {
             Code = code;
             Name = name;
